@@ -2,7 +2,7 @@
 from custom_components.dahua import DahuaDataUpdateCoordinator
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, ATTRIBUTION
-
+from . import DahuaDataUpdateCoordinator
 """
 For a list of entity types, see https://developers.home-assistant.io/docs/core/entity/
 """
@@ -14,7 +14,7 @@ class DahuaBaseEntity(CoordinatorEntity):
     def __init__(self, coordinator: DahuaDataUpdateCoordinator, config_entry):
         super().__init__(coordinator)
         self.config_entry = config_entry
-        self._coordinator = coordinator
+        self._coordinator: DahuaDataUpdateCoordinator = coordinator
 
     # https://developers.home-assistant.io/docs/entity_registry_index
     @property
@@ -29,7 +29,7 @@ class DahuaBaseEntity(CoordinatorEntity):
             "identifiers": {(DOMAIN, self._coordinator.get_serial_number())},
             "name": self._coordinator.get_device_name(),
             "model": self._coordinator.get_model(),
-            "manufacturer": "Dahua",
+            "manufacturer": "Lorex",
             "configuration_url": "http://" + self._coordinator.get_address(),
             "sw_version": self._coordinator.get_firmware_version(),
         }

@@ -48,7 +48,7 @@ class DahuaEventThread(threading.Thread):
                 _LOGGER.warning("TimeoutError connecting to camera")
                 future.cancel()
             except Exception as ex:  # pylint: disable=broad-except
-                _LOGGER.debug("%s", ex)
+                _LOGGER.debug("Exception: %s", ex)
 
             if not self.started:
                 _LOGGER.debug("Exiting DahuaEventThread")

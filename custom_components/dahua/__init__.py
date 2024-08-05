@@ -313,6 +313,7 @@ class DahuaDataUpdateCoordinator(DataUpdateCoordinator):
             # Figure out which APIs we need to call and then fan out and gather the results
             coros = [
                 asyncio.ensure_future(self.client.async_get_config_motion_detection()),
+                asyncio.ensure_future(self.client.async_get_ivs_rules())
             ]
             if self.supports_infrared_light():
                 coros.append(
@@ -321,10 +322,6 @@ class DahuaDataUpdateCoordinator(DataUpdateCoordinator):
                 coros.append(asyncio.ensure_future(self.client.async_get_disarming_linkage()))
             if self._supports_coaxial_control:
                 coros.append(asyncio.ensure_future(self.client.async_get_coaxial_control_io_status()))
-            if self._supports_smart_motion_detection:
-                coros.append(asyncio.ensure_future(self.client.async_get_smart_motion_detection()))
-            if self.supports_smart_motion_detection_amcrest():
-                coros.append(asyncio.ensure_future(self.client.async_get_video_analyse_rules_for_amcrest()))
             if self.is_amcrest_doorbell():
                 coros.append(asyncio.ensure_future(self.client.async_get_light_global_enabled()))
 
@@ -499,10 +496,15 @@ class DahuaDataUpdateCoordinator(DataUpdateCoordinator):
         # }
         if code == "CrossLineDetection" or code == "CrossRegionDetection":
             data = event.get("data", event.get("Data", {}))
+            _LOGGER.debug(f"dahua_debug: {data.get("Object", {}).get("ObjectType", "").lower()}")
             is_human = data.get("Object", {}).get("ObjectType", "").lower() == "human"
-            if is_human and self._dahua_event_listeners.get(self.get_event_key(code)) is None:
+            if is_human:
                 return "SmartMotionHuman"
-
+        if code == "CrossLineDetection" or code == "CrossRegionDetection":
+            data = event.get("data", event.get("Data", {}))
+            is_vehicle = data.get("Object", {}).get("ObjectType", "").lower() == "vehicle"
+            if is_vehicle:
+                return "SmartMotionVehicle"
         # Convert doorbell pressed related events to common event name, DoorbellPressed.
         # VTO devices will use the event BackKeyLight and the Amcrest devices seem to use PhoneCallDetect
         if code == "BackKeyLight" or code == "PhoneCallDetect":
@@ -598,6 +600,18 @@ class DahuaDataUpdateCoordinator(DataUpdateCoordinator):
             return self.data.get("table.VideoAnalyseRule[0][0].Enable", "").lower() == "true"
         else:
             return self.data.get("table.SmartMotionDetect[0].Enable", "").lower() == "true"
+    
+    
+    def is_human_smart_motion_detection_enabled(self) -> bool:
+        """ Returns true if smart motion detection is enabled """
+        return self.data.get("table.VideoAnalyseRule[0][1].Enable", "").lower() == "true"
+        
+    def is_vehicle_smart_motion_detection_enabled(self) -> bool:
+        """ Returns true if smart motion detection is enabled """
+        return self.data.get("table.VideoAnalyseRule[0][2].Enable", "").lower() == "true"
+        
+        
+        
 
     def is_siren_on(self) -> bool:
         """ Returns true if the camera siren is on """
